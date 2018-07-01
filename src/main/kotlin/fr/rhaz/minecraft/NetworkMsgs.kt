@@ -32,7 +32,7 @@ fun Logger.donate(proxy: ProxyServer) {
     |
     |     __         _    ____  __   ___
     |    |__) |__|  /_\   ___/ |  \ |__  \  /
-    |	|  \ |  | /   \ /___  |__/ |___  \/
+    |    |  \ |  | /   \ /___  |__/ |___  \/
     |
     |   It seems you use $plugins
     |
@@ -52,9 +52,8 @@ class NetworkMsgs : Plugin() {
     lateinit var config: Configuration
     var permission: Boolean = false
 
-    lateinit var playersConf: Configuration
+    lateinit var cplayers: Configuration
     lateinit var silents: MutableList<String>
-    lateinit var players: MutableList<String>
 
     var servers = HashMap<ProxiedPlayer, ServerInfo>()
 
@@ -67,10 +66,8 @@ class NetworkMsgs : Plugin() {
 
     fun reload() {
         config = loadConfig("config.yml") ?: return
-        permission = config.getBoolean("use-permission")
-        playersConf = loadConfig("players.yml") ?: return
-        players = playersConf.getStringList("players")
-        silents = playersConf.getStringList("silent")
+        cplayers = loadConfig("players.yml") ?: return
+        silents = cplayers.getStringList("silent")
     }
 
     val provider = ConfigurationProvider.getProvider(YamlConfiguration::class.java)!!
@@ -113,14 +110,15 @@ class NetworkMsgs : Plugin() {
                 var msg = config.getString(it)
 
                 if(it == "welcome") {
+                    val players = cplayers.getStringList("players")
                     if (players.contains(e.player.name))
                         return@forEach
                     players.add(e.player.name)
-                    playersConf.set("players", players)
-                    saveConfig(playersConf, "players.yml")
+                    cplayers.set("players", players)
+                    saveConfig(cplayers, "players.yml")
                 }
 
-                else if(it == "join-to")
+                if(it == "join-to")
                     if (config.getSection("servers").keys.contains(toServer))
                         msg = config.getSection("servers.$toServer").getString(it)
 
@@ -226,7 +224,7 @@ class NetworkMsgs : Plugin() {
                     else -> String()
                 }
 
-                if(server.isEmpty())
+                if(server.any())
                     if (config.getSection("servers").keys.contains(server))
                         msg = config.getSection("servers.$server").getString(it)
 
@@ -294,8 +292,8 @@ class NetworkMsgs : Plugin() {
 
                     sender.msg("§cSilent mode is now: $silent")
 
-                    playersConf.set("silent", silents)
-                    saveConfig(playersConf, "players.yml")
+                    cplayers.set("silent", silents)
+                    saveConfig(cplayers, "players.yml")
                 }
                 "reload" -> {
                     if(!sender.hasPermission("nmsg.reload"))

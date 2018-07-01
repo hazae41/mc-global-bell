@@ -1,24 +1,47 @@
-# If you only want to send a message to players who have permission "nmsg.receive"
+#     __         _    ____  __   ___
+#    |__) |__|  /_\   ___/ |  \ |__  \  /
+#    |  \ |  | /   \ /___  |__/ |___  \/
+#
+#   If you like my softwares or you just want to support me, I'd enjoy donations.
+#   By donating, you're going to encourage me to continue developing quality softwares.
+#   And you'll be added to the donators list!
+#
+#   Click here to donate: http://dev.rhaz.fr/donate
+#
+
 use-permission: false
-# Note: you can disable any message by clearing it
+# If you only want to send a message to players who have permission "nmsg.receive"
+
 welcome: "&5Welcome &b%player% &5to our network!"
-# Displayed to all players on BungeeCord (%player%, %to-server%)
+# Note: you can disable any message by clearing it
+
 join-all: "&e[&a+&e] &b%player% &7(&b%to-server%&7)"
-# Displayed to all players on target server (%player%, %to-server%)
+# Displayed to all players on BungeeCord (%player%, %to-server%)
+
 join-to: "&e[&a+&e] &b%player%"
-# Displayed to all players on BungeeCord (%player%, %from-server%)
+# Displayed to all players on the target server (%player%, %to-server%)
+
 leave-all: "&e[&c-&e] &b%player% &7(&b%from-server%&7)"
-# Displayed to all players on the server (%player%, %from-server%)
+# Displayed to all players on BungeeCord (%player%, %from-server%)
+
 leave-from: "&e[&c-&e] &b%player%"
-# Displayed to all players on BungeeCord (%player%, %from-server%, %to-server%)
+# Displayed to all players on the left server (%player%, %from-server%)
+
 switch-all: "&e[&7>&e] &b%player% &7> &b%to-server%"
-# Displayed to all players on target server (%player%, %from-server%, %to-server%)
+# Displayed to all players on BungeeCord (%player%, %from-server%, %to-server%)
+
 switch-to: "&e[&7>&e] &b%player% &7< &b%from-server%"
-# Displayed to all players on the server (%player%, %from-server%, %to-server%)
+# Displayed to all players on the target server (%player%, %from-server%, %to-server%)
+
 switch-from: "&e[&7>&e] &b%player% &7> &b%to-server%"
-# Servers
-servers:
+# Displayed to all players on the left server (%player%, %from-server%, %to-server%)
+
+servers: # Per-server configuration for [join-to, leave-from, switch-to, switch-from]
     factions:
         alias: "&2Factions&b"
-        join-to: "&e%player% joined the game"
-        switch-to: "&e%player% joined the game"
+        # Replaces the server name in [server, to-server, from-server] variables
+        join-to: "&d%player% would like to fight!"
+        leave-from: "&d%player% surrenders"
+        switch-to: "&d%player% would like to fight!"
+        switch-from: "&d%player% surrenders"
+        # These message variants will only be sent to players on the server "factions"
