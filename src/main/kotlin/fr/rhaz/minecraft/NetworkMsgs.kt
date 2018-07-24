@@ -17,6 +17,8 @@ import net.md_5.bungee.event.EventHandler
 import net.md_5.bungee.event.EventPriority
 import java.io.File
 import java.nio.file.Files
+import java.util.*
+import java.util.concurrent.TimeUnit
 import java.util.logging.Logger
 
 fun text(string: String) = TextComponent(string.replace("&", "§"))
@@ -55,9 +57,11 @@ class NetworkMsgs : Plugin() {
     lateinit var cplayers: Configuration
     lateinit var silents: MutableList<String>
 
-    var servers = HashMap<ProxiedPlayer, ServerInfo>()
+    var players = HashMap<UUID, String>()
 
+    lateinit var plugin: NetworkMsgs
     override fun onEnable() {
+        plugin = this;
         this.proxy.pluginManager.registerListener(this, listener)
         this.proxy.pluginManager.registerCommand(this, cmd)
         reload()
@@ -93,10 +97,18 @@ class NetworkMsgs : Plugin() {
     val listener = object: Listener{
 
         @EventHandler(priority = EventPriority.HIGH)
-        fun onConnection(e: ServerSwitchEvent) {
+        fun onConnection(e: ServerSwitchEvent) =
+            proxy.scheduler.schedule(plugin, {onConnected(e)}, 2, TimeUnit.SECONDS)
 
-            if(servers.containsKey(e.player))
-                return
+        fun onConnected(e: ServerSwitchEvent){
+
+            if(e.player !in proxy.players) return
+
+            if(players[e.player.uniqueId] != null) return
+            players[e.player.uniqueId] = e.player.server.info.name
+
+            logger.info("+ player")
+
             if(silents.contains(e.player.name))
                 return
 
@@ -138,9 +150,9 @@ class NetworkMsgs : Plugin() {
                         continue
 
                     val out = msg
-                        .replace("%player%", e.player.displayName)
-                        .replace("%realname%", e.player.name)
-                        .replace("%to-server%", alias(toServer))
+                            .replace("%player%", e.player.displayName)
+                            .replace("%realname%", e.player.name)
+                            .replace("%to-server%", alias(toServer))
 
                     for(line in out.split("%newline%"))
                         player.msg(line)
@@ -149,18 +161,24 @@ class NetworkMsgs : Plugin() {
         }
 
         @EventHandler(priority = EventPriority.HIGHEST)
-        fun onDisconnection(e: PlayerDisconnectEvent) {
+        fun onDisconnection(e: PlayerDisconnectEvent) =
+            proxy.scheduler.schedule(plugin, {onDisconnected(e)}, 2, TimeUnit.SECONDS)
 
-            if(!servers.containsKey(e.player))
-                return
+        fun onDisconnected(e: PlayerDisconnectEvent){
 
-            servers.remove(e.player)
+            if(e.player in proxy.players) return
+
+            val name = players[e.player.uniqueId] ?: return
+
+            logger.info("- player")
+
+            players.remove(e.player.uniqueId)
 
             if(silents.contains(e.player.name))
                 return
 
-            val fromServer = servers[e.player]!!.name
-            val fromPlayers = servers[e.player]!!.players
+            val fromServer = proxy.getServerInfo(name).name
+            val fromPlayers = proxy.getServerInfo(name).players
             val allPlayers = HashSet<ProxiedPlayer>(proxy.players)
             allPlayers.removeAll(fromPlayers)
 
@@ -199,20 +217,19 @@ class NetworkMsgs : Plugin() {
         @EventHandler(priority = EventPriority.HIGHEST)
         fun onSwitch(e: ServerSwitchEvent) {
 
-            if(servers.containsKey(e.player))
-                return
+            if(e.player !in proxy.players) return
 
-            servers[e.player] = e.player.server.info
+            val name = players[e.player.uniqueId] ?: return
 
             if(silents.contains(e.player.name))
                 return
 
             val allPlayers = HashSet<ProxiedPlayer>(proxy.players)
-            val fromPlayers = servers[e.player]!!.players
+            val fromPlayers = proxy.getServerInfo(name).players
             val toPlayers = e.player.server.info.players
             allPlayers.removeAll(fromPlayers)
             allPlayers.removeAll(toPlayers)
-            val fromServer = servers[e.player]!!.name
+            val fromServer = proxy.getServerInfo(name).name
             val toServer = e.player.server.info.name
 
             listOf("switch-all", "switch-from", "switch-to").forEach {
