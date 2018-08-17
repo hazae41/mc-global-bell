@@ -1,0 +1,55 @@
+buildscript {
+    ext.kotlin_version = '1.2.60'
+
+    ext.pluginname = 'NetworkMsgs'
+    ext.plugindesc = 'Proxy-side Join-Leave-Switch Messages'
+
+    repositories {
+        mavenCentral()
+    }
+    dependencies{
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+apply plugin: 'kotlin'
+
+group 'fr.rhaz.minecraft'
+version '1.6.3'
+
+repositories {
+    mavenCentral()
+    maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
+    jcenter()
+    maven { url "https://hub.spigotmc.org/nexus/content/repositories/snapshots/"}
+    maven { url 'https://repo.spongepowered.org/maven'}
+    maven { url 'https://mymavenrepo.com/repo/NIp3fBk55f5oF6VI1Wso/' }
+}
+
+dependencies {
+    compileOnly 'fr.rhaz.minecraft:kotlin4mc:1.2.60'
+    compileOnly "net.md-5:bungeecord-api:1.12-SNAPSHOT"
+}
+
+sourceSets {
+    main.kotlin.srcDirs += 'src'
+    test.kotlin.srcDirs += 'test'
+}
+
+tasks.withType(Jar) {
+    destinationDir = file("$rootDir/jar")
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA'
+}
+
+import org.apache.tools.ant.filters.ReplaceTokens
+processResources {
+    with copySpec {
+        from 'resources'
+        filter(ReplaceTokens, tokens: ['id':rootProject.name, 'name':pluginname, 'version':version, 'desc':plugindesc])
+    }
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
