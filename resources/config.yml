@@ -4,13 +4,15 @@
 #
 #   If you like my softwares or you just want to support me, I'd enjoy donations.
 #   By donating, you're going to encourage me to continue developing quality softwares.
-#   And you'll be added to the donators list!
 #
 #   Click here to donate: http://dev.rhaz.fr/donate
 #
 
 use-permission: false
 # If you only want to send a message to players who have permission "nmsg.receive"
+
+silent-permission: "nmsg.silent.force"
+# Players with this permission will be silents
 
 welcome: "&5Welcome &b%player% &5to our network!"
 # Note: you can disable any message by clearing it

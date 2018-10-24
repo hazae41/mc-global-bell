@@ -1,5 +1,5 @@
 name: @name@
 version: @version@
-main: fr.rhaz.minecraft.NetworkMsgsPlugin
+main: fr.rhaz.minecraft.NetworkMsgs
 author: Hazae41
 depend: [Kotlin4MC]
