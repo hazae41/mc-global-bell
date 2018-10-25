@@ -120,9 +120,11 @@ class NetworkMsgs: BungeePlugin() {
         val perm = config.getString("silent-permission")
         if(e.player.hasPermission(perm)) return
 
-        val now = System.currentTimeMillis()
-        if((now - lastjoin) < 500) return
-        lastjoin = now
+        if(config.getBoolean("prevent-bots")){
+            val now = System.currentTimeMillis()
+            if((now - lastjoin) < 500) return
+            lastjoin = now
+        }
 
         val all = HashSet<ProxiedPlayer>(proxy.players)
         all.removeAll(to.players)
@@ -178,9 +180,11 @@ class NetworkMsgs: BungeePlugin() {
         val perm = config.getString("silent-permission")
         if(e.player.hasPermission(perm)) return
 
-        val now = System.currentTimeMillis()
-        if((now - lastleave) < 500) return
-        lastleave = now
+        if(config.getBoolean("prevent-bots")){
+            val now = System.currentTimeMillis()
+            if((now - lastleave) < 500) return
+            lastleave = now
+        }
 
         val all = proxy.players.toHashSet()
         all.removeAll(from.players)

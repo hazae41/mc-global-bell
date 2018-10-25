@@ -8,6 +8,9 @@
 #   Click here to donate: http://dev.rhaz.fr/donate
 #
 
+prevent-bots: false
+# Enable if you want to keep a certain cooldown (500ms) between each message
+
 receive-permission: "nmsg.receive"
 # Players with this permission will receive the messages
 # Leave blank to allow everyone
