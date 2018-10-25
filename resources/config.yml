@@ -8,8 +8,9 @@
 #   Click here to donate: http://dev.rhaz.fr/donate
 #
 
-use-permission: false
-# If you only want to send a message to players who have permission "nmsg.receive"
+receive-permission: "nmsg.receive"
+# Players with this permission will receive the messages
+# Leave blank to allow everyone
 
 silent-permission: "nmsg.silent.force"
 # Players with this permission will be silents

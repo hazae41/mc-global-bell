@@ -1,17 +1,16 @@
 package fr.rhaz.minecraft
 
 import fr.rhaz.minecraft.kotlin.*
+import net.md_5.bungee.api.ChatColor.AQUA
 import net.md_5.bungee.api.ChatColor.LIGHT_PURPLE
 import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.ClickEvent.Action.OPEN_URL
 import net.md_5.bungee.api.connection.ProxiedPlayer
 import net.md_5.bungee.api.event.PlayerDisconnectEvent
 import net.md_5.bungee.api.event.ServerSwitchEvent
-import net.md_5.bungee.api.plugin.Listener
 import net.md_5.bungee.config.Configuration
-import net.md_5.bungee.event.EventHandler
-import net.md_5.bungee.event.EventPriority
 import net.md_5.bungee.event.EventPriority.HIGH
+import net.md_5.bungee.event.EventPriority.HIGHEST
 import java.lang.Exception
 import java.util.*
 import java.util.concurrent.TimeUnit.SECONDS
@@ -29,7 +28,7 @@ class NetworkMsgs: BungeePlugin() {
         config = load(dataFolder["config.yml"], "config.yml")
             ?: throw ex("Could not load config.yml")
         cplayers = load(dataFolder["players.yml"], "players.yml")
-            ?: throw ex("Could not load config.yml")
+            ?: throw ex("Could not load players.yml")
     }
 
     val alias = fun(name: String) = name.also{
@@ -39,26 +38,20 @@ class NetworkMsgs: BungeePlugin() {
     }
 
     override fun onEnable() = catch<Exception>(::severe){
-
-        update(10239, LIGHT_PURPLE)
-
+        update(10239, AQUA)
         load()
 
-        listen<ServerSwitchEvent>(HIGH){
-            switched(it)
-            schedule(delay = 2, unit = SECONDS){connected(it)}
+        listen<ServerSwitchEvent>(HIGHEST){
+            schedule(delay = 2, unit = SECONDS){switched(it); connected(it)}
         }
-
-        listen<PlayerDisconnectEvent>(HIGH){
+        listen<PlayerDisconnectEvent>(HIGHEST){
             schedule(delay = 2, unit = SECONDS){disconnected(it)}
         }
-
         command("nmsg", command)
     }
 
 
     val command = fun BungeeSender.(args:Array<String>){
-        if(this !is ProxiedPlayer) return msg("&cYou're not a player")
         fun noperm() = msg("&cYou do not have permission")
         fun help() = listOf(
             "&6NetworkMsgs &7v${description.version}&8:",
@@ -70,8 +63,15 @@ class NetworkMsgs: BungeePlugin() {
         if(args.isEmpty()) return help()
         when(args[0].lc){
             "silent" -> {
+                if(this !is ProxiedPlayer)
+                return msg("&cYou're not a player")
+
                 if(!hasPermission("nmsg.silent"))
-                    return noperm()
+                return noperm()
+
+                if(hasPermission(config.getString("silent-permission")))
+                return msg("&cYou are forced to be silent")
+
                 val silents = cplayers.getStringList("silent")
                 if (name in silents) {
                     silents.remove(name)
@@ -83,20 +83,22 @@ class NetworkMsgs: BungeePlugin() {
                 cplayers["silent"] = silents
                 save(cplayers, dataFolder["players.yml"])
             }
-            "reload" ->
-                if(hasPermission("nmsg.reload")){
-                    catch<Exception>({msg(it); it.printStackTrace()}){
-                        load(); msg("Config reloaded!")
-                    }
-                } else noperm()
+            "reload" -> {
+                if(!hasPermission("nmsg.reload"))
+                return noperm()
+                catch<Exception>(::msg){
+                    load(); msg("Config reloaded!")
+                }
+            }
             "donate" -> text("""
-                    |If you like my softwares or you just want to support me,
-                    |I'd enjoy donations.
-                    |By donating, you're going to encourage me to continue
-                    |developing quality softwares.
-                    |And you'll be added to the donators list!
-                    |Click here to donate: http://dev.rhaz.fr/donate
-                """.trimMargin("|")).apply {
+                |If you like my softwares or you just want to support me,
+                |I'd enjoy donations.
+                |By donating, you're going to encourage me to continue
+                |developing quality softwares.
+                |And you'll be added to the donators list!
+                |Click here to donate: http://dev.rhaz.fr/donate
+                """.trimMargin("|")
+            ).apply {
                 color = LIGHT_PURPLE
                 clickEvent = ClickEvent(OPEN_URL, "https://dev.rhaz.fr/donate")
                 msg(this)
@@ -109,9 +111,9 @@ class NetworkMsgs: BungeePlugin() {
     val connected = fun(e: ServerSwitchEvent){
 
         if(e.player !in proxy.players) return
-
-        if(players[e.player.uniqueId] != null) return
-        players[e.player.uniqueId] = e.player.server.info.name
+        if(e.player.uniqueId in players) return
+        val to = e.player.server.info
+        players[e.player.uniqueId] = to.name
 
         val silents = cplayers.getStringList("silent")
         if(e.player.name in silents) return
@@ -122,51 +124,45 @@ class NetworkMsgs: BungeePlugin() {
         if((now - lastjoin) < 500) return
         lastjoin = now
 
-        val toServer = e.player.server.info.name
-        val toPlayers = e.player.server.info.players
-        val allPlayers = HashSet<ProxiedPlayer>(proxy.players)
-        allPlayers.removeAll(toPlayers)
+        val all = HashSet<ProxiedPlayer>(proxy.players)
+        all.removeAll(to.players)
 
-        listOf("welcome", "join-to", "join-all").forEach{
-
-            var msg = config.getString(it)
+        listOf("welcome", "join-to", "join-all").forEach h@{
 
             if(it == "welcome") {
                 val players = cplayers.getStringList("players")
-                if (e.player.name in players) return@forEach
+                if (e.player.name in players) return@h
                 players.add(e.player.name)
                 cplayers.set("players", players)
                 save(cplayers, dataFolder["players.yml"])
             }
 
-            if(it == "join-to")
-                if(toServer in config.getSection("servers").keys)
-                    msg = config.getSection("servers.$toServer").getString(it)
+            fun get(server: String) =
+                config.getSection("servers.$server")
+                ?.getString(it).not("")
+                ?: config.getString(it)
 
-            if(msg.isEmpty()) return@forEach
+            val msg = when(it){
+                "join-to" -> get(to.name)
+                else -> config.getString(it)
+            }.not("") ?: return@h
 
             val players = when(it){
-                "join-to" -> toPlayers
-                "join-all" -> allPlayers
+                "join-to" -> to.players
+                "join-all" -> all
                 "welcome" -> proxy.players
                 else -> mutableListOf()
             }
 
-            info("sending to $players")
+            val receive = config.getString("receive-permission")
+            if(receive.isNotEmpty()) players.retainAll{ it.hasPermission(receive) }
 
-            for (player in players) {
-
-                if(config.getBoolean("use-permission"))
-                    if(!player.hasPermission("nmsg.receive")) continue
-
-                val out = msg
-                        .replace("%player%", e.player.displayName)
-                        .replace("%realname%", e.player.name)
-                        .replace("%to-server%", alias(toServer))
-
-                for(line in out.split("%newline%"))
-                    player.msg(line)
-            }
+            val lines = msg
+                .replace("%player%", e.player.displayName)
+                .replace("%realname%", e.player.name)
+                .replace("%to-server%", alias(to.name))
+                .split("\n")
+            players.forEach { p -> lines.forEach(p::msg) }
         }
     }
 
@@ -175,9 +171,7 @@ class NetworkMsgs: BungeePlugin() {
 
         if(e.player in proxy.players) return
 
-        val name = players[e.player.uniqueId] ?: return
-
-        players.remove(e.player.uniqueId)
+        val from = proxy.getServerInfo(players.remove(e.player.uniqueId) ?: return)
 
         val silents = cplayers.getStringList("silent")
         if(e.player.name in silents) return
@@ -188,39 +182,36 @@ class NetworkMsgs: BungeePlugin() {
         if((now - lastleave) < 500) return
         lastleave = now
 
-        val fromServer = proxy.getServerInfo(name).name
-        val fromPlayers = proxy.getServerInfo(name).players
-        val allPlayers = HashSet<ProxiedPlayer>(proxy.players)
-        allPlayers.removeAll(fromPlayers)
+        val all = proxy.players.toHashSet()
+        all.removeAll(from.players)
 
-        listOf("leave-all", "leave-from").forEach{
-            var msg = config.getString(it)
+        listOf("leave-all", "leave-from").forEach h@{
 
-            if(it == "leave-from")
-                if(fromServer in config.getSection("servers").keys)
-                    msg = config.getSection("servers.$fromServer").getString(it)
+            fun get(server: String) =
+                config.getSection("servers.$server")
+                ?.getString(it).not("")
+                ?: config.getString(it)
 
-            if(msg.isEmpty()) return@forEach
+            val msg = when(it){
+                "leave-from" -> get(from.name)
+                else -> config.getString(it)
+            }.not("") ?: return@h
 
             val players = when(it) {
-                "leave-all" -> allPlayers
-                "leave-from" -> fromPlayers
-                else -> mutableListOf()
+                "leave-from" -> from.players
+                else -> all
             }
 
-            for (player in players) {
+            val receive = config.getString("receive-permission")
+            if(receive.isNotEmpty()) players.retainAll{ it.hasPermission(receive) }
 
-                if(config.getBoolean("use-permission"))
-                    if(!player.hasPermission("nmsg.receive")) continue
+            val lines = msg
+                .replace("%player%", e.player.displayName)
+                .replace("%realname%", e.player.name)
+                .replace("%from-server%", alias(from.name))
+                .split("\n")
+            players.forEach{ p -> lines.forEach(p::msg) }
 
-                val out = msg
-                        .replace("%player%", e.player.displayName)
-                        .replace("%realname%", e.player.name)
-                        .replace("%from-server%", alias(fromServer))
-
-                for(line in out.split("%newline%"))
-                    player.msg(line)
-            }
         }
     }
 
@@ -228,56 +219,49 @@ class NetworkMsgs: BungeePlugin() {
 
         if(e.player !in proxy.players) return
 
-        val name = players[e.player.uniqueId] ?: return
+        val from = proxy.getServerInfo(players[e.player.uniqueId] ?: return)
+        val to = e.player.server.info
+        players[e.player.uniqueId] = to.name
 
         val silents = cplayers.getStringList("silent")
         if(e.player.name in silents) return
         val perm = config.getString("silent-permission")
         if(e.player.hasPermission(perm)) return
 
-        val allPlayers = HashSet<ProxiedPlayer>(proxy.players)
-        val fromPlayers = proxy.getServerInfo(name).players
-        val toPlayers = e.player.server.info.players
-        allPlayers.removeAll(fromPlayers)
-        allPlayers.removeAll(toPlayers)
-        val fromServer = proxy.getServerInfo(name).name
-        val toServer = e.player.server.info.name
+        val all = HashSet<ProxiedPlayer>(proxy.players)
+            .apply { removeAll(from.players); removeAll(to.players) }
 
-        listOf("switch-all", "switch-from", "switch-to").forEach {
-            var msg = config.getString(it)
+        listOf("switch-all", "switch-from", "switch-to").forEach h@{
 
-            val server = when(it){
-                "switch-to" -> toServer
-                "switch-from" -> fromServer
-                else -> String()
+            fun get(server: String) =
+                config.getSection("servers.$server")
+                ?.getString(it).not("")
+                ?: config.getString(it)
+
+            val msg = when(it){
+                "switch-to" -> get(to.name)
+                "switch-from" -> get(from.name)
+                else -> config.getString(it)
+            }.not("") ?: return@h
+
+
+            var players = when(it){
+                "switch-to" -> to.players
+                "switch-from" -> from.players
+                else -> all
             }
 
-            if(server.any())
-                if (server in config.getSection("servers").keys)
-                    msg = config.getSection("servers.$server").getString(it)
+            val receive = config.getString("receive-permission")
+            if(receive.isNotEmpty()) players.retainAll{ it.hasPermission(receive) }
 
-            if(msg.isEmpty()) return@forEach
+            val lines = msg
+                .replace("%player%", e.player.displayName)
+                .replace("%realname%", e.player.name)
+                .replace("%from-server%", alias(from.name))
+                .replace("%to-server%", alias(to.name))
+                .split("\n")
 
-            val players = when(it){
-                "switch-all" -> allPlayers
-                "switch-to" -> toPlayers
-                "switch-from" -> fromPlayers
-                else -> mutableListOf()
-            }
-
-            for(player in players){
-
-                if(config.getBoolean("use-permission"))
-                    if(!player.hasPermission("nmsg.receive")) continue
-
-                val out = msg
-                        .replace("%player%", e.player.displayName)
-                        .replace("%realname%", e.player.name)
-                        .replace("%from-server%", alias(fromServer))
-                        .replace("%to-server%", alias(toServer))
-
-                for(line in out.split("%newline%")) player.msg(line)
-            }
+            players.forEach{p -> lines.forEach(p::msg)}
         }
     }
 }
