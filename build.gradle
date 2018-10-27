@@ -15,7 +15,7 @@ buildscript {
 apply plugin: 'kotlin'
 
 group 'fr.rhaz.minecraft'
-version '1.7.3'
+version '1.7.4'
 
 repositories {
     mavenCentral()
@@ -27,7 +27,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'fr.rhaz.minecraft:kotlin4mc:2.0.5'
+    compileOnly 'fr.rhaz.minecraft:kotlin4mc:2.0.6'
     compileOnly "net.md-5:bungeecord-api:1.12-SNAPSHOT"
 }
 
