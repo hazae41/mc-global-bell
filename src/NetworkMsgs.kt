@@ -9,9 +9,7 @@ import net.md_5.bungee.api.connection.ProxiedPlayer
 import net.md_5.bungee.api.event.PlayerDisconnectEvent
 import net.md_5.bungee.api.event.ServerSwitchEvent
 import net.md_5.bungee.config.Configuration
-import net.md_5.bungee.event.EventPriority.HIGH
 import net.md_5.bungee.event.EventPriority.HIGHEST
-import java.lang.Exception
 import java.util.*
 import java.util.concurrent.TimeUnit.SECONDS
 
@@ -126,7 +124,7 @@ class NetworkMsgs: BungeePlugin() {
             lastjoin = now
         }
 
-        val all = HashSet<ProxiedPlayer>(proxy.players)
+        val all = proxy.players.toMutableSet()
         all.removeAll(to.players)
 
         listOf("welcome", "join-to", "join-all").forEach h@{
@@ -154,7 +152,7 @@ class NetworkMsgs: BungeePlugin() {
                 "join-all" -> all
                 "welcome" -> proxy.players
                 else -> mutableListOf()
-            }
+            }.toMutableList()
 
             val receive = config.getString("receive-permission")
             if(receive.isNotEmpty()) players.retainAll{ it.hasPermission(receive) }
@@ -204,7 +202,7 @@ class NetworkMsgs: BungeePlugin() {
             val players = when(it) {
                 "leave-from" -> from.players
                 else -> all
-            }
+            }.toMutableList()
 
             val receive = config.getString("receive-permission")
             if(receive.isNotEmpty()) players.retainAll{ it.hasPermission(receive) }
