@@ -253,7 +253,7 @@ class NetworkMsgs: BungeePlugin() {
                 "switch-to" -> to.players
                 "switch-from" -> from.players
                 else -> all
-            }
+            }.toMutableList()
 
             val receive = config.getString("receive-permission")
             if(receive.isNotEmpty()) players.retainAll{ it.hasPermission(receive) }
