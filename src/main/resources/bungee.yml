@@ -1,0 +1,4 @@
+name: GlobalBell
+version: @version@
+main: hazae41.minecraft.GlobalBell
+author: hazae41
