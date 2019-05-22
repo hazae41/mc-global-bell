@@ -69,15 +69,15 @@ class GlobalBell: BungeePlugin() {
         listen<PlayerDisconnectEvent>(HIGHEST){
             schedule(delay = 2, unit = SECONDS){disconnected(it)}
         }
-        command("nmsg", command)
+        command("gbell", command)
     }
 
     val command = fun BungeeSender.(args:Array<String>){
         val noperm = { msg("&cYou do not have permission") }
         fun help() = listOf(
-            "&6NetworkMsgs &7v${description.version}&8:",
-            "&7/nmsg &6silent",
-            "&7/nmsg &6reload"
+            "&6GlobalBell &7v${description.version}&8:",
+            "&7/gbell &6silent",
+            "&7/gbell &6reload"
         ).forEach(::msg)
 
         if(args.isEmpty()) return help()
@@ -86,7 +86,7 @@ class GlobalBell: BungeePlugin() {
                 if(this !is ProxiedPlayer)
                 return msg("&cYou're not a player")
 
-                if(!hasPermission("nmsg.silent"))
+                if(!hasPermission("gbell.silent"))
                 return noperm()
 
                 if(hasPermission(Config.silentPerm))
@@ -101,7 +101,7 @@ class GlobalBell: BungeePlugin() {
                 }
             }
             "reload" -> {
-                if(!hasPermission("nmsg.reload"))
+                if(!hasPermission("gbell.reload"))
                 return noperm()
                 catch<Exception>(::msg){
                     Config.reload()
@@ -150,6 +150,8 @@ class GlobalBell: BungeePlugin() {
                 else -> null!!
             }
 
+            if(msg.isBlank()) return@h
+
             val players = when(type){
                 "join-to" -> to.players
                 "join-all" -> all
@@ -193,7 +195,9 @@ class GlobalBell: BungeePlugin() {
                 "leave-from" -> from.conf.leaveFrom
                 "leave-all" -> Config.leaveAll
                 else -> null!!
-            }.not("") ?: return@h
+            }
+
+            if(msg.isBlank()) return@h
 
             val players = when(it) {
                 "leave-from" -> from.players
@@ -209,6 +213,7 @@ class GlobalBell: BungeePlugin() {
                 .replace("%realname%", e.player.name)
                 .replace("%from-server%", from.conf.alias)
                 .split("\n")
+
             players.forEach{ p -> lines.forEach(p::msg) }
 
         }
@@ -237,7 +242,9 @@ class GlobalBell: BungeePlugin() {
                 "switch-from" -> from.conf.switchFrom
                 "switch-all" -> Config.switchAll
                 else -> null!!
-            }.not("") ?: return@h
+            }
+
+            if(msg.isBlank()) return@h
 
             val players = when(it){
                 "switch-to" -> to.players

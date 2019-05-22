@@ -1,11 +1,11 @@
 prevent-bots: false
 # Enable if you want to keep a certain cooldown (500ms) between each message
 
-receive-permission: "nmsg.receive"
+receive-permission: "gbell.receive"
 # Players with this permission will receive the messages
 # Leave blank to allow everyone
 
-silent-permission: "nmsg.silent.force"
+silent-permission: "gbell.silent.force"
 # Players with this permission will be silents
 
 welcome: "&5Welcome &b%player% &5to our network!"
