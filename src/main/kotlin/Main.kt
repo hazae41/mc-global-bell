@@ -13,10 +13,10 @@ import net.md_5.bungee.event.EventPriority.HIGHEST
 import java.util.*
 import java.util.concurrent.TimeUnit.SECONDS
 import kotlin.collections.set
+import hazae41.minecraft.GlobalBell.Config.Servers.conf
 
 class GlobalBell: BungeePlugin() {
 
-    val ServerInfo.conf get() = Config.Server(name)
     object Config: ConfigFile("config"){
         val silentPerm by string("silent-permission")
         val receivePerm by string("receive-permission")
@@ -31,22 +31,22 @@ class GlobalBell: BungeePlugin() {
         val switchFrom by string("switch-from")
         val switchAll by string("switch-all")
 
-        val servers by section("servers")
-        val Servers get() = servers?.keys?.map(::Server)
-        class Server(val name: String): ConfigSection(this, name){
-            constructor(server: ServerInfo): this(server.name)
-            val _alias by string("alias")
-            val alias get() = _alias.not("") ?: name
-            val _welcome by string("welcome")
-            val welcome get() = _welcome.not("") ?: Config.welcome
-            val _joinTo by string("join-to")
-            val joinTo get() = _joinTo.not("") ?: Config.joinTo
-            val _leaveFrom by string("leave-from")
-            val leaveFrom get() = _leaveFrom.not("") ?: Config.leaveFrom
-            val _switchTo by string("switch-to")
-            val switchTo get() = _switchTo.not("") ?: Config.switchTo
-            val _switchFrom by string("switch-from")
-            val switchFrom get() = _switchFrom.not("") ?: Config.switchFrom
+        object Servers: ConfigSection(this, "servers") {
+            val ServerInfo.conf get() = Config.Servers.Server(name)
+            class Server(val name: String): ConfigSection(this, name){
+                val _alias by string("alias")
+                val alias get() = _alias.not("") ?: name
+                val _welcome by string("welcome")
+                val welcome get() = _welcome.not("") ?: Config.welcome
+                val _joinTo by string("join-to")
+                val joinTo get() = _joinTo.not("") ?: Config.joinTo
+                val _leaveFrom by string("leave-from")
+                val leaveFrom get() = _leaveFrom.not("") ?: Config.leaveFrom
+                val _switchTo by string("switch-to")
+                val switchTo get() = _switchTo.not("") ?: Config.switchTo
+                val _switchFrom by string("switch-from")
+                val switchFrom get() = _switchFrom.not("") ?: Config.switchFrom
+            }
         }
 
         object Players: ConfigFile("players"){
@@ -56,8 +56,6 @@ class GlobalBell: BungeePlugin() {
     }
 
     var onlines = HashMap<UUID, String>()
-
-    val alias = fun(name: String) = Config.Server(name).alias.not("") ?: name
 
     override fun onEnable() = catch(::error){
         update(10239, AQUA)
@@ -259,8 +257,8 @@ class GlobalBell: BungeePlugin() {
             val lines = msg
                 .replace("%player%", e.player.displayName)
                 .replace("%realname%", e.player.name)
-                .replace("%from-server%", alias(from.name))
-                .replace("%to-server%", alias(to.name))
+                .replace("%from-server%", from.conf.alias)
+                .replace("%to-server%", to.conf.alias)
                 .split("\n")
 
             players.forEach{p -> lines.forEach(p::msg)}

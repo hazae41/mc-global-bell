@@ -14,7 +14,7 @@ task relocateShadowJar(type: ConfigureShadowRelocation) {
 
 
 group 'hazae41'
-version '1.8.2'
+version '1.8.3'
 
 apply from: 'mcplugin.gradle'
 apply from: 'bungeecord.gradle'
